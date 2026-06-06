@@ -222,7 +222,7 @@ We introduce a difficulty coefficient $C_d$ that linearly increases to aid the a
 
 $$V_{\text{pr}} = V_{\text{pr, min}} + C_d (V_{\text{pr, max}} - V_{\text{pr, min}})$$
 
-$$C_d = \frac{t_{\text{cur}}}{\gamma \, t_{\text{total}}}$$
+$$C_d = \frac{t_{\text{cur}}}{\gamma \ t_{\text{total}}}$$
 
 The curriculum warmup ratio $\gamma$ is set to `0.33` by default.
 
