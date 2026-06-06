@@ -1,10 +1,9 @@
 # End-to-End RL for Predator-Prey: A Vision-Based SAC Baseline
 
 <p align="center">
-  <video src="./assets/demo_prey_pred_vision_sac_e2e.mp4" 
-         autoplay loop muted playsinline 
-         style="width: 80%; max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-  </video>
+  <img src="assets/demo_prey_pred_vision_sac_e2e.webp" 
+       alt="End-to-End Visual SAC Demonstration" 
+       style="width: 80%; max-width: 400px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
 </p>
 
 <p align="center">
@@ -220,7 +219,7 @@ We defined a 17-dimensional continuous state vector:
 ### Curriculum Learning
 We introduce a difficulty coefficient $C_d$ that linearly increases to aid the agent in initial exploration. The difficulty is defined by modulating the maximum speed of the predator (and optionally the lead angle):
 
-$$V_{\text{pr}} = V_{\text{pr\_min}} + C_d (V_{\text{pr\_max}} - V_{\text{pr\_min}})$$
+$$V_{\text{pr}} = V_{\text{pr, min}} + C_d (V_{\text{pr, max}} - V_{\text{pr, min}})$$
 
 $$C_d = \frac{t_{\text{cur}}}{\gamma \, t_{\text{total}}}$$
 
