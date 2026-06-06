@@ -3,7 +3,7 @@
 <p align="center">
   <img src="assets/demo_prey_pred_vision_sac_e2e.webp" 
        alt="End-to-End Visual SAC Demonstration" 
-       style="width: 80%; max-width: 400px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
+       width="400">
 </p>
 
 <p align="center">
@@ -169,8 +169,9 @@ Upon each reset, the prey, predator, and checkpoint are spawned at random locati
 * **Predator:** Operates on a Proportional Navigation (PN) algorithm with a maximum speed capped at `1.01x` of the prey's speed.
 
 ### Environment Characteristics
+
 <p align="center">
-  <img src="assets/env_visualization.png" alt="Environment Visualization" style="width: 100%; max-width: 1000px;">
+  <img src="assets/env_visualization.png" alt="Environment Visualization" width="1000">
 </p>
 
 As illustrated in the figure below, the domain is a 2x2 grid with coordinates bounded within `[-1, 1]` on both X and Y axes. 
@@ -261,8 +262,9 @@ We tested different combinations of pre-trained stems and tracked the evaluation
 ---
 
 <p align="center">
-  <img src="assets/e2e_phase_curve.png" alt="E2E Learning Curves" style="width: 100%; max-width: 900px;">
+  <img src="assets/e2e_phase_curve.png" alt="E2E Learning Curves" width="900">
 </p>
+
 
 <details>
 <summary>📊 <b>Click to expand the detailed quantitative benchmark data (Table)</b></summary>
