@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this software or find the insights helpful, please cite it as below."
+authors:
+- family-names: "Hu"
+  given-names: "Yingqi"
+title: "End-to-End RL for Predator-Prey: A Vision-Based SAC Baseline"
+version: "1.0.0"
+date-released: 2026-06-06
+url: "https://github.com/HuengchI/predator-prey-e2e-rl"
+keywords:
+  - reinforcement-learning
+  - soft-actor-critic
+  - multi-agent-rl
+  - computer-vision
+  - representation-mismatch
