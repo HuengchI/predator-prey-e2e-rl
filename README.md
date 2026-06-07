@@ -28,6 +28,7 @@ The training framework features a **staged pipeline**:
 * **Comprehensive Toolsets:** Includes out-of-the-box scripts for trajectory visualization, dataset auditing, and rigorous checkpoint evaluation.
 * **Rich Empirical Observations:** Features deep dive analyses into fascinating training phenomena, including how domain randomization accelerates E2E adaptation, and how agents develop (and sometimes forget) complex deceptive maneuvers.
 
+---
 
 ## 💻 Setup & Reproduction
 
@@ -170,6 +171,7 @@ For profound structural modifications (e.g., altering the total number of agents
 * `multiagent-envs/multiagent/core.py`
 * `multiagent-envs/multiagent/environment.py`
 
+---
 
 ## 🗺️ Scenario Introduction
 In this continuous-space environment, there are a total of 6 entities: the prey, the predator, the checkpoint, and three landmarks. The prey is tasked with escaping the predator's pursuit and safely reaching the checkpoint without colliding with any landmarks. 
@@ -206,10 +208,14 @@ The scenario employs a sparse reward structure with 4 distinct termination outco
 * `SUICIDE`: The prey collided with a landmark or the domain border.
 * `TIMEOUT`: The prey failed to reach the checkpoint within the maximum allowed steps.
 
-## 🧠 Pipeline Phase 1: Oracle SAC Training
+---
+
+## 🔬 Methodology & Empirical Results
+
+### Phase 1: Oracle SAC Pre-training (State-Based)
 To verify the learning algorithm and maximize computational efficiency, we first trained an oracle policy model directly using accurate physical state values.
 
-### Reward Design
+#### Reward Design
 We deliberately designed simple and sparse rewards to minimize human prior limitations:
 * `WIN`: `+200.0` points
 * `CAUGHT`: `-100.0` points
@@ -217,7 +223,7 @@ We deliberately designed simple and sparse rewards to minimize human prior limit
 * `TIMEOUT`: `-120.0` points
 * `Step Penalty`: `-0.05` points per step to encourage efficiency
 
-### Observation State Space
+#### Observation State Space
 We defined a 17-dimensional continuous state vector:
 
 * **`0-1` (2D):** Prey's absolute position (`pos`)
@@ -229,7 +235,7 @@ We defined a 17-dimensional continuous state vector:
 * **`16` (1D):** Normalized time remaining in the episode (`time_left`)
 
 
-### Curriculum Learning
+#### Curriculum Learning
 We introduce a difficulty coefficient $C_d$ that linearly increases to aid the agent in initial exploration. The difficulty is defined by modulating the maximum speed of the predator (and optionally the lead angle):
 
 $$V_{\text{pr}} = V_{\text{pr, min}} + C_d (V_{\text{pr, max}} - V_{\text{pr, min}})$$
@@ -238,10 +244,10 @@ $$C_d = \frac{t_{\text{cur}}}{\gamma \ t_{\text{total}}}$$
 
 The curriculum warmup ratio $\gamma$ is set to `0.33` by default.
 
-### Observation Noise
+#### Observation Noise
 As an ablation study and to better adapt the policy for subsequent visual End-to-End training, we injected random Gaussian noise into the state observations during Oracle training. By default, the standard deviation of the noise is set to $\sigma = 0.03$.
 
-### Evaluation and Results
+#### Phase 1 Results
 During training, checkpoints were progressively saved and evaluated. To ensure statistical significance, each checkpoint underwent a rigorous offline evaluation of **1,000 independent episodes**. The checkpoint with the highest success rate was selected as the final model.
 
 | Model | Total Timesteps | Best Success Rate |
@@ -249,22 +255,21 @@ During training, checkpoints were progressively saved and evaluated. To ensure s
 | Oracle SAC | 30M | 100% |
 | Oracle SAC w/ noise | 30M | 90.1% |
 
-## 👁️ Pipeline Phase 2: End-to-End Fine-tuning
+### Phase 2: Vision-Driven End-to-End Fine-Tuning
 The End-to-End (E2E) phase forces the model to directly read raw image observations and output control signals. This is achieved by integrating a dedicated vision backbone with the SAC controller.
 
-### Vision Backbone Pre-training
+#### Vision Backbone Pre-training
 We utilized a streamlined 4-layer CNN equipped with a DSNT (Differentiable Spatial to Numerical Transform) layer for explicit coordinate extraction. The temperature scaling for the spatial softmax is set to `50.0`. 
 
 The network was pre-trained using supervised learning on a dataset of 300k labeled images sampled from the environment for 15 epochs. The final best checkpoint achieved an evaluation metric of **~0.8 mean pixel error** and **~3.1 max pixel error** on the validation set.
 
 
-### E2E Fine-tuning
+#### E2E Fine-Tuning
 We constructed the integrated model by plugging the pre-trained vision backbone into the SAC architecture as the feature extractor. Optimization was initialized by loading the pre-trained weights from both the Vision network and the Oracle SAC. We applied grouped parameter updates with distinct learning rates: `3e-4` for the SAC MLP and `1e-6` for the vision backbone.
 
 To reconstruct the velocity-dependent 17-D state purely from static image observations, we stacked **2 consecutive frames** and compute the agents' velocities using a **1st-order Forward Finite Difference** method ($v \approx \frac{x_t - x_{t-1}}{\Delta t}$).
 
 
-### Results
 
 #### Quantitative Evaluation
 We tested different combinations of pre-trained stems and tracked the evaluation success rate. During training, intermediate evaluations were conducted every fixed number of steps (500 episodes). Upon completion, the best-performing model from each setting was selected and re-evaluated over **1,000 independent episodes** to ensure statistical significance.
