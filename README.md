@@ -30,25 +30,8 @@ The training framework features a **staged pipeline**:
 
 
 ## 💻 Setup & Reproduction
-#### 📂 Project Structure
-```python
-predator-prey-e2e-rl/
- ├── src/                 # Main training and evaluation recipes
- │   ├── e2e/             # End-to-End fine-tuning scripts
- │   ├── env/             # Wrappers for customizing speed, rewards, state space, etc.
- │   ├── notebooks/       # Jupyter notebooks for visualization and data auditing
- │   ├── oracle/          # State-based oracle policy training
- │   └── vision/          # Supervised learning scripts for the vision backbone
- ├── logs/                # TensorBoard log directory
- ├── outputs/             # Saved checkpoints, generated datasets, and render videos
- └── multiagent-envs/     # Dependency: Core physical simulator & Simple-Tag scenario
 
-```
-
-*Note: Before initiating any training runs in `src/`, it is highly recommended to inspect the source code and adjust hyperparameters (e.g., `input/output_path`, `num_epochs`, `learning_rate`) to fit your specific setup.*
-
-#### 🛠️ Environment Installation
-#### Env install
+### 🛠️ Environment Installation
 It is strongly suggested to start with a fresh virtual environment.
 For example, using Conda:
 
@@ -83,8 +66,35 @@ pip install "setuptools<82.0" --force-reinstall
 
 *(If you encounter any `ModuleNotFoundError` during runtime, simply install the missing packages via pip).*
 
+### 📂 Project Structure
+```python
+predator-prey-e2e-rl/
+ ├── src/                 # Main training and evaluation recipes
+ │   ├── e2e/             # End-to-End fine-tuning scripts
+ │   ├── env/             # Wrappers for customizing speed, rewards, state space, etc.
+ │   ├── notebooks/       # Jupyter notebooks for visualization and data auditing
+ │   ├── oracle/          # State-based oracle policy training
+ │   └── vision/          # Supervised learning scripts for the vision backbone
+ ├── logs/                # TensorBoard log directory
+ ├── outputs/             # Saved checkpoints, generated datasets, and render videos
+ ├── weights/             # Directory for downloaded pre-trained model weights
+ └── multiagent-envs/     # Dependency: Core physical simulator & Simple-Tag scenario
 
-#### 🧠 1. Oracle SAC Training
+```
+
+*Note: Before initiating any training runs in `src/`, it is highly recommended to inspect the source code and adjust hyperparameters (e.g., `input/output_path`, `num_epochs`, `learning_rate`) to fit your specific setup.*
+
+
+### 💾 Pre-trained Weights (Quick Evaluation)
+
+To reproduce the benchmark results without training from scratch, you can download the pre-trained weights from the [Releases](https://github.com/huengchi/predator-prey-e2e-rl/releases/tag/v1.0-weights) page. 
+
+Place the downloaded `.zip` files into the `weights/` directory before running the evaluation scripts.
+
+
+### 🧠 Training from Scratch
+
+#### 1. Oracle SAC Training
 
 To train the state-based policy:
 
@@ -104,7 +114,7 @@ Optionally, generate a visual render (like the demo video at the top of this pag
 python src/oracle/visualize_control_sac.py
 ```
 
-#### 👁️ 2. Vision Backbone Pre-training
+#### 2. Vision Backbone Pre-training
 
 First, generate the supervised dataset by rolling out the environment:
 
@@ -126,7 +136,7 @@ Once the dataset integrity is confirmed, start the vision network training:
 python src/vision/train_vision.py
 ```
 
-#### 🚀 3. End-to-End Fine-tuning
+#### 3. End-to-End Fine-tuning
 
 With the pre-trained Oracle policy and Vision backbone checkpoints ready, you can launch the end-to-end fine-tuning:
 
@@ -148,7 +158,7 @@ Upon completion, render a real-time video of your fully visual-driven agent:
 python src/e2e/visualize_control_sac_e2e.py
 ```
 
-#### ⚙️ Environment Customization
+### ⚙️ Environment Customization
 
 You can effortlessly customize the environment physics and logic by modifying the wrapper classes located in `src/env/env_wrapper.py`. Changes can be visualized using the notebook `src/notebooks/visualize_mpe_env.ipynb`.
 
@@ -312,7 +322,7 @@ We tested different combinations of pre-trained stems and tracked the evaluation
 ## 🚀 Future Work
 * **Higher-Order Numerical Differentiation:** Future iterations will explore stacking 3 consecutive frames to compute velocity using a **Central Finite Difference** scheme, which offers 2nd-order numerical accuracy, yielding smoother and more precise velocity estimations for the controller.
 * **Robustness Against Visual Occlusion:** The current DSNT-based vision backbone occasionally struggles when entities heavily overlap, resulting in "phantom" coordinate predictions in empty spaces. This phenomenon is the primary driver of spikes in the maximum pixel error. Future work will investigate explicit occlusion handling mechanisms, such as Hard Example Mining (HEM) during supervised pre-training, to sustain spatial awareness during dense collisions.
-* **Dynamic Optimization Landscapes:** The current pipeline utilizes fixed learning rates. Implementing dynamic learning rate scheduling (e.g., Cosine Annealing or Linear Decay) and systematically tuning the SAC entropy coefficient could further smooth the optimization landscape, breaking through the current capacity bottleneck to boost final performance.
+* **Dynamic Optimization Landscapes:** The current pipeline utilizes fixed learning rates. Implementing dynamic learning rate scheduling (e.g., **Cosine Annealing or Linear Decay**) and systematically tuning the SAC entropy coefficient could further smooth the optimization landscape, breaking through the current capacity bottleneck to boost final performance.
 
 ## ⭐ Star Support
 
