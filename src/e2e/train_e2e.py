@@ -1,11 +1,10 @@
 import sys
 import importlib
 import os
+import time
 import torch
 import numpy as np
 import gymnasium as gym
-from env_wrapper import SingleAgentWrapper, ImageObservationWrapper
-from train_vision import VisionEncoder
 from pathlib import Path
 from stable_baselines3 import SAC
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
@@ -13,9 +12,11 @@ from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor, VecFrame
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, CheckpointCallback
 
-
-DYNAMIC_LIB_ROOT = Path(__file__).absolute().parent.parent / "multiagent-envs-ML"
+DYNAMIC_LIB_ROOT = Path("./multiagent-envs").absolute()
 sys.path.append(str(DYNAMIC_LIB_ROOT))
+
+from src.env.env_wrapper import SingleAgentWrapper, ImageObservationWrapper
+from src.vision.train_vision import VisionEncoder
 
 def custom_load_scenario(scenario_name):
     path = DYNAMIC_LIB_ROOT / "multiagent" / "scenarios" / scenario_name
@@ -305,20 +306,29 @@ def setup_e2e_optimizers(model, mlp_lr=3e-4, vision_lr=1e-5, freeze_vision=True)
 
 
 def main():
+
+    run_id_str = f"e2e/{time.strftime(r'%Y_%m_%d/%H_%M_%S', time.localtime())}"
+    tb_log_path = Path("./logs/").absolute() / run_id_str
+    output_base = Path(f"./outputs/").absolute() / run_id_str
+
+    eval_save_path = output_base
+    model_save_path = output_base / 'final_model'
+    progress_save_path = output_base / 'progress_checkpoints/'
+
+    progress_save_path.mkdir(parents=True, exist_ok=True)
+    tb_log_path.mkdir(parents=True, exist_ok=True)
+
+
     num_cpu = 64
     num_cpu_eval = 32
     total_timesteps = 30_000_000
     success_callback_window = 500
     eval_epoches=200
-    eval_save_path = "./saved_models/sac_e2e_best_model"
     eval_freq = 100_000
     save_freq = 400_000
-    progress_save_path = "./saved_models/sac_e2e_progress_ckpt"
-    tb_log_path = "./logs/e2e_sac/"
     # End2End Training
     freeze_vision_backbone = False
 
-    os.makedirs(tb_log_path, exist_ok=True)
 
     # Construct Envs
     env = SubprocVecEnv([make_env(i) for i in range(num_cpu)])
@@ -331,8 +341,8 @@ def main():
     # Construct models
     model = create_model(
         env=env,
-        vision_ckpt_path="./vision_nn_ckpt/best_model.pth",
-        pretrained_sac_path="./saved_models/overnight_sac_best/best_model.zip",
+        vision_ckpt_path="./outputs/vision/2026_06_01/19_53_14/best_model.pth",
+        pretrained_sac_path="./outputs/oracle/2026_06_01/11_15_29/best_model.zip",
         device="cuda",
         log_path=tb_log_path
     )
@@ -362,7 +372,8 @@ def main():
     except KeyboardInterrupt:
         print("Ctrl+C detected. Saving last model checkpoint...")
     finally:
-        model.save("./saved_models/sac_e2e_final")
+        model.save(model_save_path)
+        print(f"Final model saved at {model_save_path}.zip")
 
 if __name__ == "__main__":
     main()

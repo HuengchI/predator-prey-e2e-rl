@@ -10,10 +10,10 @@ from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3 import SAC
 import gymnasium as gym
 
-DYNAMIC_LIB_ROOT = Path(__file__).absolute().parent.parent / "multiagent-envs-ML"
-sys.path.append(str(DYNAMIC_LIB_ROOT))
-from env_wrapper import SingleAgentWrapper 
 
+DYNAMIC_LIB_ROOT = Path("./multiagent-envs").absolute()
+sys.path.append(str(DYNAMIC_LIB_ROOT))
+from src.env.env_wrapper import SingleAgentWrapper 
 
 def make_eval_env(rank, seed=0):
     def _init():
@@ -123,10 +123,10 @@ def parallel_evaluate_model(model_path, eval_env, num_eval_envs, target_episodes
 
 
 def main():
-    progress_checkpoint_dir = "./saved_models/progress_checkpoints"
+    progress_checkpoint_dir = "./outputs/oracle/2026_06_01/09_15_29/progress_checkpoints"
     extra_checkpoint_paths = [
-        "./saved_models/overnight_sac_best/best_model.zip",
-        "./saved_models/sac_marathon_final.zip",
+        "outputs/oracle/2026_06_01/09_15_29/best_model.zip",
+        "outputs/oracle/2026_06_01/09_15_29/final_model.zip",
     ]
 
     num_eval_envs = 72
@@ -160,8 +160,8 @@ def main():
         eval_env.close()
         
     print(f"\n{'-'*50}")
-    print(f"🏆 Evaluation Finished.")
-    print(f"🏆 Best model: {os.path.basename(best_ckpt)} (Success Rate: {best_win_rate:.1f}%)")
+    print(f"Evaluation Finished.")
+    print(f"Best model: {os.path.basename(best_ckpt)} (Success Rate: {best_win_rate:.1f}%)")
     print(f"{'-'*50}")
 
 if __name__ == "__main__":

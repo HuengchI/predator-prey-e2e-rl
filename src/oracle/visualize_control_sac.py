@@ -4,11 +4,11 @@ from pathlib import Path
 import cv2
 import numpy as np
 from stable_baselines3 import SAC
-from env_wrapper import SingleAgentWrapper 
 import importlib.util
 
-DYNAMIC_LIB_ROOT = Path(__file__).absolute().parent.parent / "multiagent-envs-ML"
+DYNAMIC_LIB_ROOT = Path("./multiagent-envs").absolute()
 sys.path.append(str(DYNAMIC_LIB_ROOT))
+from src.env.env_wrapper import SingleAgentWrapper 
 
 def custom_load_scenario(scenario_name):
     path = DYNAMIC_LIB_ROOT / "multiagent" / "scenarios" / scenario_name
@@ -46,7 +46,7 @@ def render_by_opencv(world):
 
     return canvas
 
-def record_demo(model_path, video_name="prey_god_mode_sac.mp4", num_episodes=10):
+def record_demo(model_path, video_name, num_episodes=10):
     scenario = custom_load_scenario("simple_tag.py")
     world = scenario.make_world()
 
@@ -110,6 +110,7 @@ def record_demo(model_path, video_name="prey_god_mode_sac.mp4", num_episodes=10)
     print(f"Video saved as {video_name}")
 
 if __name__ == "__main__":
-    target_model = "./saved_models/sac_marathon_final.zip"
+    target_model = "./outputs/oracle/2026_06_01/09_15_29/best_model.zip"
+    video_name = "./outputs/oracle/2026_06_01/09_15_29/vid_oracle_sac_best_model.mp4"
 
-    record_demo(model_path=target_model)
+    record_demo(video_name=video_name, model_path=target_model)

@@ -4,8 +4,10 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import os
+import time
 from torch.utils.data import random_split
 import torchvision.transforms as T
+from pathlib import Path
 
 class DSNT(nn.Module):
     def __init__(self, height, width):
@@ -119,13 +121,15 @@ def seed_worker(worker_id):
 
 def train_vision_model():
     epochs = 15
-    vision_nn_ckpt = "./vision_nn_ckpt/"
+
+    run_id_str = f"vision/{time.strftime(r'%Y_%m_%d/%H_%M_%S', time.localtime())}"
+    vision_nn_ckpt = Path(f"./outputs/").absolute() / run_id_str
     os.makedirs(vision_nn_ckpt, exist_ok=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f">>> Vision Backbone is now training on {device} ...")
 
-    dataset = MPEVisionDataset("./vision_nn_dataset/images.npy", "./vision_nn_dataset/coords.npy")
+    dataset = MPEVisionDataset("./outputs/vision_dataset/2026_06_01/09_34_20/images.npy", "./outputs/vision_dataset/2026_06_01/09_34_20/coords.npy")
 
     val_size = int(len(dataset) * 0.1)
     train_size = len(dataset) - val_size

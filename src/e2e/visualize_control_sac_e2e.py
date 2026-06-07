@@ -8,13 +8,12 @@ import importlib.util
 import math
 import torch
 import gymnasium as gym
-
-from env_wrapper import SingleAgentWrapper, ImageObservationWrapper
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 
-from train_e2e import E2EVisionExtractor, setup_e2e_optimizers
+from src.env.env_wrapper import SingleAgentWrapper, ImageObservationWrapper
+from src.e2e.train_e2e import E2EVisionExtractor, setup_e2e_optimizers
 
-DYNAMIC_LIB_ROOT = Path(__file__).absolute().parent.parent / "multiagent-envs-ML"
+DYNAMIC_LIB_ROOT = Path("./multiagent-envs").absolute()
 sys.path.append(str(DYNAMIC_LIB_ROOT))
 
 def custom_load_scenario(scenario_name):
@@ -85,7 +84,7 @@ def render_by_opencv(world):
 
     return canvas
 
-def record_demo(model_path, video_name="prey_god_mode_sac.mp4", num_episodes=10):
+def record_demo(model_path, video_name, num_episodes=10):
     def _make_env():
         scenario = custom_load_scenario("simple_tag.py")
         world = scenario.make_world()
@@ -214,5 +213,7 @@ def record_demo(model_path, video_name="prey_god_mode_sac.mp4", num_episodes=10)
     print(f">>> Video has saved to: {video_name}")
 
 if __name__ == "__main__":
-    target_model = "./saved_models/sac_e2e_best_model/best_model.zip"
-    record_demo(model_path=target_model, video_name="prey_e2e_vision_sac_2026.6.6_w_noise_2.mp4", num_episodes=1000)
+    target_model = "./outputs/e2e/2026_06_02/15_10_47/best_model.zip"
+    video_name = "./outputs/e2e/2026_06_02/15_10_47/vid_e2e_sac_best_model.mp4"
+
+    record_demo(model_path=target_model, video_name=video_name, num_episodes=10)

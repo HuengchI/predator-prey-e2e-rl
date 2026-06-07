@@ -3,7 +3,7 @@
 <p align="center">
   <img src="assets/demo_prey_pred_vision_sac_e2e.webp" 
        alt="End-to-End Visual SAC Demonstration" 
-       width="400">
+       width="350">
 </p>
 
 <p align="center">
@@ -41,10 +41,10 @@ conda activate gym_RL
 ```
 
 Next, install PyTorch. Please visit the [PyTorch Get Started Page](https://pytorch.org/get-started/previous-versions/) to choose the command that matches your CUDA driver. *(Note: For this RL task, a GPU is not mandatory; all training can be seamlessly executed via CPU).*
-Example for CUDA 12.1:
+Example for CUDA 13.0:
 
 ```bash
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# pip install torch==2.10.0 torchvision==0.25.0 torchaudio==2.10.0 --index-url https://download.pytorch.org/whl/cu130
 ```
 
 Install the local physical environment dependency:
@@ -58,7 +58,7 @@ cd ..
 Finally, install other requisite libraries:
 
 ```bash
-pip install stable_baselines3 tensorboard opencv-python
+pip install stable_baselines3 tensorboard opencv-python tqdm rich ipykernel
 
 # A specific version of setuptools might be required by TensorBoard
 pip install "setuptools<82.0" --force-reinstall
@@ -70,11 +70,11 @@ pip install "setuptools<82.0" --force-reinstall
 ```python
 predator-prey-e2e-rl/
  ├── src/                 # Main training and evaluation recipes
- │   ├── e2e/             # End-to-End fine-tuning scripts
  │   ├── env/             # Wrappers for customizing speed, rewards, state space, etc.
- │   ├── notebooks/       # Jupyter notebooks for visualization and data auditing
  │   ├── oracle/          # State-based oracle policy training
- │   └── vision/          # Supervised learning scripts for the vision backbone
+ │   ├── vision/          # Supervised learning scripts for the vision backbone
+ │   └── e2e/             # End-to-End fine-tuning scripts
+ ├── notebooks/           # Jupyter notebooks for visualization and data auditing
  ├── logs/                # TensorBoard log directory
  ├── outputs/             # Saved checkpoints, generated datasets, and render videos
  ├── weights/             # Directory for downloaded pre-trained model weights
@@ -99,19 +99,19 @@ Place the downloaded `.zip` files into the `weights/` directory before running t
 To train the state-based policy:
 
 ```bash
-python src/oracle/train_control_sac.py
+PYTHONPATH=. python src/oracle/train_control_sac.py
 ```
 
 Once the training is completed, evaluate the checkpoint offline:
 
 ```bash
-python src/oracle/eval_offline_sac.py
+PYTHONPATH=. python src/oracle/eval_offline_sac.py
 ```
 
 Optionally, generate a visual render (like the demo video at the top of this page):
 
 ```bash
-python src/oracle/visualize_control_sac.py
+PYTHONPATH=. python src/oracle/visualize_control_sac.py
 ```
 
 #### 2. Vision Backbone Pre-training
@@ -119,29 +119,31 @@ python src/oracle/visualize_control_sac.py
 First, generate the supervised dataset by rolling out the environment:
 
 ```bash
-python src/vision/collect_data.py
+PYTHONPATH=. python src/vision/collect_data.py
 ```
 
 Before training, it is crucial to audit the generated dataset to prevent silent bugs (e.g., axis flipping, coordinate mismatch, or highly identical frames caused by RNG seeding issues). Use the provided tools:
 
 ```bash
-python src/vision/audit_vision_coord_dataset_macro.py
+PYTHONPATH=. python src/vision/audit_vision_coord_dataset_macro.py
 ```
 
-*(You can also interactively inspect it using `src/notebooks/visualize_vision_coord_dataset.ipynb`)*.
+*(You can also interactively inspect it using `notebooks/visualize_vision_coord_dataset.ipynb`)*.
 
-Once the dataset integrity is confirmed, start the vision network training:
+After verifying dataset integrity, launch vision network training:
 
 ```bash
-python src/vision/train_vision.py
+PYTHONPATH=. python src/vision/train_vision.py
 ```
+
+*(Once the training completes, you can interactively audit model predictions using `notebooks/visualize_vision_nn_prediction.ipynb`.)*
 
 #### 3. End-to-End Fine-tuning
 
 With the pre-trained Oracle policy and Vision backbone checkpoints ready, you can launch the end-to-end fine-tuning:
 
 ```bash
-python src/e2e/train_e2e.py
+PYTHONPATH=. python src/e2e/train_e2e.py
 ```
 
 *Make sure the checkpoint paths inside the script correctly point to your generated models.* Training duration may vary from a few hours to a few days depending on your hardware and total timesteps.
@@ -155,12 +157,12 @@ tensorboard --logdir logs/
 Upon completion, render a real-time video of your fully visual-driven agent:
 
 ```bash
-python src/e2e/visualize_control_sac_e2e.py
+PYTHONPATH=. python src/e2e/visualize_control_sac_e2e.py
 ```
 
 ### ⚙️ Environment Customization
 
-You can effortlessly customize the environment physics and logic by modifying the wrapper classes located in `src/env/env_wrapper.py`. Changes can be visualized using the notebook `src/notebooks/visualize_mpe_env.ipynb`.
+You can effortlessly customize the environment physics and logic by modifying the wrapper classes located in `src/env/env_wrapper.py`. Changes can be visualized using the notebook `notebooks/visualize_mpe_env.ipynb`.
 
 For profound structural modifications (e.g., altering the total number of agents, collision mechanics, or underlying physical dynamics), please refer to the core simulator files:
 
@@ -263,11 +265,20 @@ To reconstruct the velocity-dependent 17-D state purely from static image observ
 
 
 ### Results
-We tested different combinations of pre-trained stems and tracked the evaluation success rate across various timesteps.
 
-> Note regarding evaluation metrics: The success rates reported below were tracked during the training process, with each intermediate checkpoint evaluated for **500 episodes**.
+#### Quantitative Evaluation
+We tested different combinations of pre-trained stems and tracked the evaluation success rate. During training, intermediate evaluations were conducted every fixed number of steps (500 episodes). Upon completion, the best-performing model from each setting was selected and re-evaluated over **1,000 independent episodes** to ensure statistical significance.
 
+| SAC Stem | Total Timesteps | Success Rate (1000 Episodes) |
+| :--- | :---: | :---: |
+| Oracle SAC | 45M | 70.5% |
+| Random SAC | 45M | 86.9% |
+| Oracle SAC w/ noise | 30M | **87.2%** |
 
+*\* **Note on Oracle SAC:** The best intermediate checkpoint (which transiently reached ~88%) was overwritten due to storage constraints, leaving only the final checkpoint at 45M steps. Because of the relatively large learning rate, the evaluation curve exhibited significant jagged oscillations throughout training, and this 70.5% result likely represents a downward variance dip at the exact final step. If you wish to verify its peak capability, you can load this final weight and continue fine-tuning for a few additional steps to easily recover the performance.*
+
+#### Learning Dynamics
+We plotted the evaluation success rates during training, revealing several fascinating evolutionary phenomena. The learning curves are visualized below, with detailed quantitative data available in the expandable table. Deep-dive discussions are provided in the Insights section.
 
 ---
 
@@ -303,26 +314,25 @@ We tested different combinations of pre-trained stems and tracked the evaluation
 
 </details>
 
-
 ## 💡 Insights & Observations
 
-1. **Three-Phase Learning Dynamics:** Across all stems, the E2E training curves consistently exhibit three distinct phases:
-    * **Incubation Phase (Latent Exploration):** The model struggles to map pixels to actionable representations. `Random SAC` requires a massive ~15M steps here, `Oracle SAC` requires ~7M steps, while `Oracle SAC w/ noise` virtually bypasses this phase (0M).
+1. **Four-Phase Learning Dynamics:** Across all stems, the E2E training curves consistently exhibit four distinct evolutionary phases:
+    * **Latent Exploration Phase:** The model struggles to map pixels to actionable representations. `Random SAC` requires a massive ~15M steps here, `Oracle SAC` requires ~7M steps, while `Oracle SAC w/ noise` virtually bypasses this phase.
     * **Rapid Capability Surge:** A steep phase transition where the evaluation success rate exponentially jumps from ~10% to ~70%.
-    * **Asymptotic Convergence:** A steady, decelerating climb towards >90%. While more timesteps could yield marginal gains, this flattening slope suggests a capacity bottleneck inherent to the current network architecture or hyperparameter configuration.
-    * **Capacity Saturation:** The curve completely flattens (e.g., Random SAC from 45M to 50M, Oracle w/ noise from 25M to 30M). Extending training yields absolutely zero improvement, indicating the model has hit a hard performance ceiling and fully saturated its current architectural capacity or hyperparameter limits.
+    * **Asymptotic Convergence:** A steady, decelerating climb towards >90%.
+    * **Stagnation (Capacity Hit):** The curve completely flattens (e.g., Random SAC from 45M to 50M). Extending training yields zero improvement, indicating the model has hit a hard performance ceiling and fully saturated its current architectural capacity or hyperparameter limits.
 
 2. **The Representation Gap & Stem Behaviors:**
     * **Domain Randomization Triumphs:** The `Oracle SAC w/ noise` stem demonstrates rapid adaptation. The observation noise injected during pre-training acts as a perfect regularizer against the coordinate jitter of the visual backbone, allowing almost zero-shot visual transfer.
     * **The "Tabula Rasa" Advantage:** The `Random SAC` wakes up the slowest due to the dual burden of learning visual features and control concurrently from scratch. However, lacking any biased priors, it ultimately converges to a highly robust optimum (93.5% at 45M).
-    * **The Overfitting Trap:** Counter-intuitively, the clean `Oracle SAC` performs the worst. It heavily overfit to the mathematically perfect states during pre-training. When subjected to the noisy coordinate predictions of the E2E pipeline, it suffers a severe representation mismatch, requiring extensive steps to "unlearn" its brittle policy, resulting in sub-optimal asymptotic performance.
+    * **The Overfitting Trap:** Counter-intuitively, the clean `Oracle SAC` performs the worst. It heavily overfit to the mathematically perfect states during pre-training. When subjected to the noisy coordinate predictions of the E2E pipeline, it suffers a severe representation mismatch, requiring extensive steps to "unlearn" its brittle policy.
 
-3. **Transient Emergent Intelligence:** During evaluations of intermediate checkpoints, we observed fascinating emergent behaviors. For instance, the prey learned to drift in circular trajectories to deceive the predator's proportional navigation, or strategically baited the predator into colliding with landmarks to gain a time window to reach the checkpoint. However, these complex behaviors were highly episodic. They often suffered from catastrophic forgetting, failing to monotonically carry over to the final "best" checkpoint, suggesting a trade-off between exploiting highly specific physical maneuvers and generalizing for overall success rates.
+3. **Transient Emergent Intelligence & Behavioral Diversity:** During evaluations of intermediate checkpoints, we observed fascinating emergent behaviors. For instance, the prey learned to drift in circular trajectories to deceive the predator's proportional navigation, or strategically baited the predator into colliding with landmarks. Interestingly, different pre-trained stems converged to distinct behavioral signatures: policies derived from `Random SAC` tend to exhibit circular drifting maneuvers, whereas `Oracle SAC w/ noise` agents favor S-shaped evasive trajectories. However, highly complex tactics—such as actively using obstacles to block predators—were uniquely observed during the intermediate checkpoints of Oracle-trained models but completely vanished in the final converged policies, highlighting a classic case of **catastrophic forgetting** of diverse transient skills.
 
 ## 🚀 Future Work
 * **Higher-Order Numerical Differentiation:** Future iterations will explore stacking 3 consecutive frames to compute velocity using a **Central Finite Difference** scheme, which offers 2nd-order numerical accuracy, yielding smoother and more precise velocity estimations for the controller.
-* **Robustness Against Visual Occlusion:** The current DSNT-based vision backbone occasionally struggles when entities heavily overlap, resulting in "phantom" coordinate predictions in empty spaces. This phenomenon is the primary driver of spikes in the maximum pixel error. Future work will investigate explicit occlusion handling mechanisms, such as Hard Example Mining (HEM) during supervised pre-training, to sustain spatial awareness during dense collisions.
-* **Dynamic Optimization Landscapes:** The current pipeline utilizes fixed learning rates. Implementing dynamic learning rate scheduling (e.g., **Cosine Annealing or Linear Decay**) and systematically tuning the SAC entropy coefficient could further smooth the optimization landscape, breaking through the current capacity bottleneck to boost final performance.
+* **Robustness Against Visual Occlusion:** The current DSNT-based vision backbone occasionally struggles when entities heavily overlap, resulting in "phantom" coordinate predictions in empty spaces. This phenomenon is the primary driver of spikes in maximum pixel errors. Future work will investigate explicit occlusion handling mechanisms, such as Hard Example Mining (HEM) during supervised pre-training, to sustain spatial awareness during dense collisions.
+* **Hyperparameter Optimization & Scheduling:** The current pipeline utilizes fixed learning rates. Implementing dynamic learning rate scheduling (e.g., **Cosine Annealing or Linear Decay**) and systematically tuning the SAC entropy coefficient could further smooth the optimization landscape, breaking through the current capacity bottleneck to boost final performance.
 
 ## ⭐ Star Support
 

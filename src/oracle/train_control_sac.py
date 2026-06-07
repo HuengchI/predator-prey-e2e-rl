@@ -8,10 +8,11 @@ from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.callbacks import EvalCallback, BaseCallback, CheckpointCallback
 from stable_baselines3 import SAC
 import gymnasium as gym
+import time
 
-DYNAMIC_LIB_ROOT = Path(__file__).absolute().parent.parent / "multiagent-envs-ML"
+DYNAMIC_LIB_ROOT = Path("./multiagent-envs").absolute()
 sys.path.append(str(DYNAMIC_LIB_ROOT))
-from env_wrapper import SingleAgentWrapper 
+from src.env.env_wrapper import SingleAgentWrapper 
 
 class EvalSuccessRewardWrapper(gym.Wrapper):
     def __init__(self, env):
@@ -101,18 +102,23 @@ def main():
     train_freq=(1 * num_cpu, "step")
     gradient_steps=num_cpu
 
-    eval_save_path = "./saved_models/overnight_sac_best/"
-    progress_save_path = './saved_models/progress_checkpoints/'
-    os.makedirs(eval_save_path, exist_ok=True)
-    os.makedirs('./saved_models/progress_checkpoints/', exist_ok=True)
-    
+    run_id_str = f"oracle/{time.strftime(r'%Y_%m_%d/%H_%M_%S', time.localtime())}"
+    log_dir = Path("./logs/").absolute() / run_id_str
+    output_base = Path(f"./outputs/").absolute() / run_id_str
+
+    eval_save_base = output_base
+    model_save_path = output_base / 'final_model'
+
+    progress_save_path = output_base / 'progress_checkpoints/'
+    progress_save_path.mkdir(parents=True, exist_ok=True)
+
     train_env = VecMonitor(SubprocVecEnv([make_env(i) for i in range(num_cpu)]))
     eval_env = VecMonitor(SubprocVecEnv([make_eval_env(i, seed=1337) for i in range(num_cpu_eval)]))
 
     success_callback = SuccessRateCallback(window_size=success_callback_window)
 
     eval_callback = EvalCallback(eval_env, 
-                                 best_model_save_path=eval_save_path,
+                                 best_model_save_path=eval_save_base,
                                  n_eval_episodes=eval_epoches, 
                                  eval_freq=eval_freq // num_cpu, 
                                  deterministic=True)
@@ -121,7 +127,7 @@ def main():
     checkpoint_callback = CheckpointCallback(
         save_freq=save_freq // num_cpu, 
         save_path=progress_save_path,
-        name_prefix='sac_marathon'
+        name_prefix='sac_oracle'
     )
 
     model = SAC("MlpPolicy", 
@@ -134,7 +140,7 @@ def main():
                 ent_coef=0.05,
                 policy_kwargs=dict(net_arch=[512, 512]),
                 verbose=1,
-                tensorboard_log="./sac_marathon_logs/",
+                tensorboard_log=log_dir,
                 learning_starts = 10000,
                 device="cuda")
 
@@ -147,7 +153,6 @@ def main():
     except KeyboardInterrupt:
         print(f"Ctrl+C Signal Detected...")
     finally:
-        model_save_path = "saved_models/sac_marathon_final"
         model.save(model_save_path)
         print(f"Checkpoint: {model_save_path}")
 

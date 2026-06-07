@@ -1,1 +1,8 @@
 **/__pycache__/
+logs/**/*.tfevents.*
+outputs/**/*.zip
+outputs/**/*.mp4
+outputs/**/*.npy
+outputs/**/*.pth
+weights/*.zip
+weights/*.pth

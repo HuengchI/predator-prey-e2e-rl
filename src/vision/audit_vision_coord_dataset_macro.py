@@ -3,7 +3,7 @@ from pathlib import Path
 import hashlib
 
 def run_macro_audit():
-    data_dir = Path("./vision_nn_dataset")
+    data_dir = Path("./outputs/vision_dataset/2026_06_01/09_15_29/")
     img_path = data_dir / "images.npy"
     coord_path = data_dir / "coords.npy"
     

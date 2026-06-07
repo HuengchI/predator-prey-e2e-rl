@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import numpy as np
 import cv2
 import importlib.util
@@ -8,9 +9,9 @@ from multiprocessing import Pool
 import hashlib
 from tqdm import tqdm
 
-DYNAMIC_LIB_ROOT = Path(__file__).absolute().parent.parent / "multiagent-envs-ML"
+DYNAMIC_LIB_ROOT = Path("./multiagent-envs").absolute()
 sys.path.append(str(DYNAMIC_LIB_ROOT))
-from env_wrapper import SingleAgentWrapper 
+from src.env.env_wrapper import SingleAgentWrapper 
 
 def render_by_opencv(world):
     canvas = np.ones((800, 800, 3), dtype=np.uint8) * 255
@@ -84,7 +85,9 @@ def worker_fn(payload):
     return np.array(local_images), np.array(local_coords)
 
 def parallel_collect(total_samples=50_000, num_workers=16):
-    save_dir = Path("./vision_nn_dataset/")
+    run_id_str = f"vision_dataset/{time.strftime(r'%Y_%m_%d/%H_%M_%S', time.localtime())}"
+
+    save_dir = Path("./outputs/").absolute() / run_id_str
     save_dir.mkdir(parents=True, exist_ok=True)
     
     tasks = [(i, total_samples // num_workers) for i in range(num_workers)]
